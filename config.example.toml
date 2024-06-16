@@ -1,0 +1,29 @@
+[elastic]
+host = "http://localhost:9200"
+index = "ssh_honeypot_logs"
+
+connect-timeout = 3 # in seconds
+
+[frontend]
+listen-address = ":2022"
+
+max-active-connections = 1
+max-connection-time = 60 # in seconds
+
+max-cpu = 0 # CPU usage in percent (zero means no limit)
+max-memory = 0 # memory usage in percent (zero means no limit)
+
+max-bytes-sent = 0 # zero means no limit
+max-bytes-received = 0 # zero means no limit
+max-packets-sent = 0 # zero means no limit
+max-packets-received = 0 # zero means no limit
+
+[sandbox]
+image = "guest"
+
+memory = 50 # in MiB
+network = "default"
+
+runtime = "" # empty means default (runc)
+
+ready-queue-size = 3

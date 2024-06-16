@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -eu
+
+cd "$(dirname "$0")/.."
+
+go build ./...
+
+go mod tidy
+go mod download
+go mod verify
+
+go vet ./...
+
+go run honnef.co/go/tools/cmd/staticcheck@latest ./...
+
+go clean -testcache
+go test -v -cover ./...

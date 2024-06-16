@@ -1,0 +1,13 @@
+#!/bin/sh
+
+cd "$(dirname "$0")/.."
+
+docker="podman"
+
+if ! command -v $docker &> /dev/null; then
+    docker="docker"
+fi
+
+exec $docker run --name elastic --rm -d -p "127.0.0.1:9200:9200" -p "127.0.0.1:9300:9300" \
+    -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" -e "discovery.type=single-node" -e "xpack.security.enabled=false" \
+    "docker.elastic.co/elasticsearch/elasticsearch:8.5.3"

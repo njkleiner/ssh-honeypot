@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# The Honeypot SSH server runs on "localhost:2022" by default.
+#
+# This helper script makes connecting to it easier by working around the fact
+# that the Honeypot SSH server does not currently reuse persistent host keys.
+
+exec ssh -o "StrictHostKeyChecking=no" -o "UserKnownHostsFile=/dev/null" -p "2022" "$@"
