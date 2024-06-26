@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/log"
 	"github.com/gliderlabs/ssh"
+	"github.com/njkleiner/ssh-honeypot/internal/log"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 )

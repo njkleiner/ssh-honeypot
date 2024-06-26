@@ -9,14 +9,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/config"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/control"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/freeport"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/log"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	"github.com/njkleiner/ssh-honeypot/internal/config"
+	"github.com/njkleiner/ssh-honeypot/internal/control"
+	"github.com/njkleiner/ssh-honeypot/internal/freeport"
+	"github.com/njkleiner/ssh-honeypot/internal/log"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/exp/maps"
 )

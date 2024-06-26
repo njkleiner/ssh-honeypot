@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/lineread"
 	"github.com/elastic/go-elasticsearch/v8/esutil"
+	"github.com/njkleiner/ssh-honeypot/internal/lineread"
 )
 
 const (

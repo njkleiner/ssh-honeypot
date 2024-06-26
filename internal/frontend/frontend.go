@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/config"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/control"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/fakeshell"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/log"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/sandbox"
 	"github.com/gliderlabs/ssh"
+	"github.com/njkleiner/ssh-honeypot/internal/config"
+	"github.com/njkleiner/ssh-honeypot/internal/control"
+	"github.com/njkleiner/ssh-honeypot/internal/fakeshell"
+	"github.com/njkleiner/ssh-honeypot/internal/log"
+	"github.com/njkleiner/ssh-honeypot/internal/sandbox"
 	gossh "golang.org/x/crypto/ssh"
 )
 

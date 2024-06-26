@@ -9,13 +9,13 @@ import (
 	"os/signal"
 	"time"
 
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/config"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/elasticlog"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/frontend"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/sandbox"
 	"github.com/docker/docker/client"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esutil"
+	"github.com/njkleiner/ssh-honeypot/internal/config"
+	"github.com/njkleiner/ssh-honeypot/internal/elasticlog"
+	"github.com/njkleiner/ssh-honeypot/internal/frontend"
+	"github.com/njkleiner/ssh-honeypot/internal/sandbox"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/config"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/sandbox"
 	"github.com/docker/docker/client"
+	"github.com/njkleiner/ssh-honeypot/internal/config"
+	"github.com/njkleiner/ssh-honeypot/internal/sandbox"
 	gossh "golang.org/x/crypto/ssh"
 )
 

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/config"
 	"github.com/docker/docker/client"
+	"github.com/njkleiner/ssh-honeypot/internal/config"
 )
 
 // TestSession tests that the entire container lifecycle is working as intended,

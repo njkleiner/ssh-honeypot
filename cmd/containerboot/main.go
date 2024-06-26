@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/control"
-	"git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot/internal/watch"
 	"github.com/fsnotify/fsnotify"
+	"github.com/njkleiner/ssh-honeypot/internal/control"
+	"github.com/njkleiner/ssh-honeypot/internal/watch"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -1,4 +1,4 @@
-module git.informatik.uni-hamburg.de/iss/bp-itsec-ss23/ssh-honeypot
+module github.com/njkleiner/ssh-honeypot
 
 go 1.21
 
