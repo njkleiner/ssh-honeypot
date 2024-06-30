@@ -15,6 +15,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
+      - name: Download Go dependencies
+        run: |
+          go mod download
       - name: Build sandbox "guest" Docker image
         run: |
           docker build -f ./cmd/containerboot/Dockerfile -t guest:latest .
