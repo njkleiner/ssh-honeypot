@@ -23,4 +23,4 @@ COPY --from=build /src/containerboot/containerboot /containerboot
 EXPOSE 22
 EXPOSE 2023
 
-CMD ["/containerboot"]
+ENTRYPOINT ["/containerboot"]
