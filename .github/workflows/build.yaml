@@ -1,0 +1,22 @@
+name: build
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.21"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Build sandbox "guest" Docker image
+        run: |
+          docker build -f ./cmd/containerboot/Dockerfile -t guest:latest .
+      - name: Run lint and test suite
+        run: |
+          ./dev/check
