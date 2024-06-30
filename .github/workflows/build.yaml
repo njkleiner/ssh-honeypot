@@ -18,6 +18,7 @@ jobs:
       - name: Download Go dependencies
         run: |
           go mod download
+          go mod verify
       - name: Build sandbox "guest" Docker image
         run: |
           docker build -f ./cmd/containerboot/Dockerfile -t guest:latest .
