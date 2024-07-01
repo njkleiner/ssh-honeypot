@@ -49,6 +49,8 @@ type Driver struct {
 	alive map[Ref]guest
 }
 
+var _ Backend = (*Driver)(nil)
+
 func NewDriver(cfg config.File, dc *client.Client) *Driver {
 	dv := &Driver{
 		cfg: cfg,
