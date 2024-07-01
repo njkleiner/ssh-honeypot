@@ -40,7 +40,7 @@ type Server struct {
 
 	cfg config.File
 
-	dv *sandbox.Driver
+	backend sandbox.Backend
 
 	// guard limits the number of concurrent sessions.
 	guard chan struct{}
@@ -55,7 +55,7 @@ type Server struct {
 	state map[string]state
 }
 
-func NewServer(cfg config.File, dv *sandbox.Driver) *Server {
+func NewServer(cfg config.File, backend sandbox.Backend) *Server {
 	s := &Server{
 		srv: &ssh.Server{
 			Addr: cfg.Frontend.ListenAddress,
@@ -74,7 +74,7 @@ func NewServer(cfg config.File, dv *sandbox.Driver) *Server {
 
 		cfg: cfg,
 
-		dv: dv,
+		backend: backend,
 
 		guard: make(chan struct{}, cfg.Frontend.MaxActiveConnections),
 
@@ -168,7 +168,7 @@ func NewServer(cfg config.File, dv *sandbox.Driver) *Server {
 			return false // insufficient capacity (try again)
 		}
 
-		ref, err := s.dv.Acquire(ctx)
+		ref, err := s.backend.Acquire(ctx)
 
 		if err != nil {
 			log.Error(ctx, "cannot acquire container", slog.Any("error", err))
@@ -184,7 +184,7 @@ func NewServer(cfg config.File, dv *sandbox.Driver) *Server {
 
 		log.Info(ctx, "acquired container", slog.String("ref", string(ref)))
 
-		cc := s.dv.ControlClient(ref)
+		cc := s.backend.ControlClient(ref)
 
 		if err := cc.Ping(ctx); err != nil {
 			log.Error(ctx, "cannot ping container",
@@ -210,7 +210,7 @@ func NewServer(cfg config.File, dv *sandbox.Driver) *Server {
 			slog.Any("auth", auth),
 			slog.String("ref", string(ref)))
 
-		conn, err := s.dv.Connect(ctx, ref, ctx.User(), password)
+		conn, err := s.backend.Connect(ctx, ref, ctx.User(), password)
 
 		if err != nil {
 			log.Error(ctx, "cannot connect into container",
@@ -314,7 +314,7 @@ func (s *Server) track(ctx ssh.Context, conn net.Conn, kill <-chan struct{}) {
 	}
 
 	if st.ref != "" {
-		err := s.dv.Destroy(st.ref)
+		err := s.backend.Destroy(st.ref)
 
 		if err != nil {
 			log.Error(ctx, "cannot destroy container",
@@ -342,7 +342,7 @@ func (s *Server) monitor(ctx ssh.Context, ip string, kill chan struct{}) {
 		}
 
 		if st.ref != "" {
-			usage, err := s.dv.Usage(ctx, st.ref)
+			usage, err := s.backend.Usage(ctx, st.ref)
 
 			if err == nil {
 				log.Info(ctx, "system usage", slog.Any("usage", usage))
