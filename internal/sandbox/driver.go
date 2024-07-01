@@ -31,8 +31,6 @@ type guest struct {
 	controlPort int
 }
 
-type Ref string
-
 type Driver struct {
 	cfg config.File
 
@@ -215,17 +213,6 @@ func (dv *Driver) Connect(ctx context.Context, ref Ref, user, password string) (
 	}
 
 	return conn, nil
-}
-
-type SystemUsage struct {
-	CPU    int `json:"cpu"`
-	Memory int `json:"memory"`
-
-	BytesSent     int `json:"bytes_sent"`
-	BytesReceived int `json:"bytes_received"`
-
-	PacketsSent     int `json:"packets_sent"`
-	PacketsReceived int `json:"packets_received"`
 }
 
 func (dv *Driver) Usage(ctx context.Context, ref Ref) (SystemUsage, error) {
