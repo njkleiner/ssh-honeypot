@@ -34,8 +34,8 @@ type guest struct {
 type Driver struct {
 	cfg config.File
 
-	// dc is used to communicate with the Docker daemon.
-	dc *client.Client
+	// daemon is used to communicate with the Docker daemon.
+	daemon *client.Client
 
 	// ready is a queue of started containers on standby.
 	ready chan Ref
@@ -52,20 +52,20 @@ type Driver struct {
 var _ Backend = (*Driver)(nil)
 
 func NewDriver(cfg config.File) (*Driver, error) {
-	dc, err := client.NewClientWithOpts(client.FromEnv)
+	daemon, err := client.NewClientWithOpts(client.FromEnv)
 
 	if err != nil {
 		return nil, fmt.Errorf("cannot create Docker client: %w", err)
 	}
 
-	if _, err := dc.Info(context.Background()); err != nil {
+	if _, err := daemon.Info(context.Background()); err != nil {
 		return nil, fmt.Errorf("cannot connect to Docker daemon: %w", err)
 	}
 
 	dv := &Driver{
 		cfg: cfg,
 
-		dc: dc,
+		daemon: daemon,
 
 		ready: make(chan Ref, cfg.Sandbox.ReadyQueueSize),
 
@@ -112,7 +112,7 @@ func (dv *Driver) start() (Ref, error) {
 		return "", fmt.Errorf("cannot reserve control HTTP port on host: %w", err)
 	}
 
-	resp, err := dv.dc.ContainerCreate(context.Background(),
+	resp, err := dv.daemon.ContainerCreate(context.Background(),
 		&container.Config{
 			Image: dv.cfg.Sandbox.Image,
 
@@ -150,11 +150,11 @@ func (dv *Driver) start() (Ref, error) {
 		return "", err
 	}
 
-	err = dv.dc.ContainerStart(context.Background(), resp.ID,
+	err = dv.daemon.ContainerStart(context.Background(), resp.ID,
 		types.ContainerStartOptions{})
 
 	if err != nil {
-		_ = dv.dc.ContainerRemove(context.Background(), resp.ID, types.ContainerRemoveOptions{Force: true})
+		_ = dv.daemon.ContainerRemove(context.Background(), resp.ID, types.ContainerRemoveOptions{Force: true})
 
 		return "", err
 	}
@@ -181,7 +181,7 @@ func (dv *Driver) remove(ref Ref) error {
 		return nil
 	}
 
-	err := dv.dc.ContainerRemove(context.Background(), string(ref), types.ContainerRemoveOptions{Force: true})
+	err := dv.daemon.ContainerRemove(context.Background(), string(ref), types.ContainerRemoveOptions{Force: true})
 
 	if err != nil {
 		return err
@@ -228,7 +228,7 @@ func (dv *Driver) Connect(ctx context.Context, ref Ref, user, password string) (
 }
 
 func (dv *Driver) Usage(ctx context.Context, ref Ref) (SystemUsage, error) {
-	raw, err := dv.dc.ContainerStats(ctx, string(ref), false)
+	raw, err := dv.daemon.ContainerStats(ctx, string(ref), false)
 
 	if err != nil {
 		return SystemUsage{}, err
