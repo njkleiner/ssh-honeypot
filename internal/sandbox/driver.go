@@ -51,7 +51,17 @@ type Driver struct {
 
 var _ Backend = (*Driver)(nil)
 
-func NewDriver(cfg config.File, dc *client.Client) *Driver {
+func NewDriver(cfg config.File) (*Driver, error) {
+	dc, err := client.NewClientWithOpts(client.FromEnv)
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot create Docker client: %w", err)
+	}
+
+	if _, err := dc.Info(context.Background()); err != nil {
+		return nil, fmt.Errorf("cannot connect to Docker daemon: %w", err)
+	}
+
 	dv := &Driver{
 		cfg: cfg,
 
@@ -64,7 +74,7 @@ func NewDriver(cfg config.File, dc *client.Client) *Driver {
 
 	go dv.work()
 
-	return dv
+	return dv, nil
 }
 
 func (dv *Driver) work() {

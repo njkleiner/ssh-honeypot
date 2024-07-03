@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/client"
 	"github.com/njkleiner/ssh-honeypot/internal/config"
 	"github.com/njkleiner/ssh-honeypot/internal/sandbox"
 	gossh "golang.org/x/crypto/ssh"
@@ -35,13 +34,11 @@ func TestRemoteConnectionLimit(t *testing.T) {
 	// IP address is not denied due to insufficient capacity.
 	cfg.Frontend.MaxActiveConnections = 2 // arbitrary number > 1
 
-	dc, err := client.NewClientWithOpts(client.FromEnv)
+	dv, err := sandbox.NewDriver(cfg)
 
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("cannot create sandbox driver: %v", err)
 	}
-
-	dv := sandbox.NewDriver(cfg, dc)
 
 	t.Cleanup(dv.Close)
 
@@ -155,13 +152,11 @@ func TestActiveConnectionLimit(t *testing.T) {
 
 	cfg.Frontend.MaxActiveConnections = 0
 
-	dc, err := client.NewClientWithOpts(client.FromEnv)
+	dv, err := sandbox.NewDriver(cfg)
 
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("cannot create sandbox driver: %v", err)
 	}
-
-	dv := sandbox.NewDriver(cfg, dc)
 
 	t.Cleanup(dv.Close)
 
@@ -228,13 +223,11 @@ func TestKillSwitchMaxConnectionTime(t *testing.T) {
 
 	cfg.Frontend.MaxConnectionTime = 5 // in seconds
 
-	dc, err := client.NewClientWithOpts(client.FromEnv)
+	dv, err := sandbox.NewDriver(cfg)
 
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("cannot create sandbox driver: %v", err)
 	}
-
-	dv := sandbox.NewDriver(cfg, dc)
 
 	t.Cleanup(dv.Close)
 

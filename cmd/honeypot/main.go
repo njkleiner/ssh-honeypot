@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/docker/docker/client"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"github.com/njkleiner/ssh-honeypot/internal/config"
@@ -68,10 +67,10 @@ func run() error {
 		})
 	}
 
-	dv, err := createDriver(cfg)
+	dv, err := sandbox.NewDriver(cfg)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot create sandbox driver: %w", err)
 	}
 
 	srv := frontend.NewServer(cfg, dv)
@@ -130,20 +129,4 @@ func createBulkWriter(cfg config.File) (*elasticlog.BulkWriter, error) {
 	bw := elasticlog.NewBulkWriter(bi)
 
 	return bw, nil
-}
-
-func createDriver(cfg config.File) (*sandbox.Driver, error) {
-	dc, err := client.NewClientWithOpts(client.FromEnv)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := dc.Info(context.Background()); err != nil {
-		return nil, fmt.Errorf("cannot connect to Docker daemon: %w", err)
-	}
-
-	dv := sandbox.NewDriver(cfg, dc)
-
-	return dv, nil
 }

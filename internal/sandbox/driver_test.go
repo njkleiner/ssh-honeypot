@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/client"
 	"github.com/njkleiner/ssh-honeypot/internal/config"
 )
 
@@ -24,17 +23,15 @@ func TestSession(t *testing.T) {
 		Level: slog.LevelDebug, // makes sense during testing
 	})))
 
-	dc, err := client.NewClientWithOpts(client.FromEnv)
-
-	if err != nil {
-		t.Fatalf("cannot connect to Docker daemon: %v", err)
-	}
-
 	var cfg config.File
 
 	cfg.SetDefaults()
 
-	dv := NewDriver(cfg, dc)
+	dv, err := NewDriver(cfg)
+
+	if err != nil {
+		t.Fatalf("cannot create sandbox driver: %v", err)
+	}
 
 	// We want to always call [Driver.Close] at the end of the test,
 	// to clean up (remove) all running containers, regardless of
