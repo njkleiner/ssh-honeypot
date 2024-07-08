@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -40,7 +39,7 @@ type Driver struct {
 	// ready is a queue of started containers on standby.
 	ready chan Ref
 
-	stop atomic.Bool
+	quit chan struct{}
 
 	// mu protects access to alive.
 	mu sync.Mutex
@@ -69,6 +68,8 @@ func NewDriver(cfg config.File) (*Driver, error) {
 
 		ready: make(chan Ref, cfg.Sandbox.ReadyQueueSize),
 
+		quit: make(chan struct{}),
+
 		alive: make(map[Ref]guest),
 	}
 
@@ -81,21 +82,27 @@ func (dv *Driver) work() {
 	defer close(dv.ready)
 
 	for {
-		if dv.stop.Load() {
-			return // shutting down
-		}
-
 		ref, err := dv.start()
 
 		if err != nil {
 			log.Error(context.TODO(), "cannot start container", "error", err)
 
-			time.Sleep(5 * time.Second)
-
-			continue // loop
+			select {
+			case <-dv.quit:
+				return // exit immediately
+			case <-time.After(5 * time.Second):
+				continue
+			}
 		}
 
 		dv.ready <- ref
+
+		select {
+		case <-dv.quit:
+			return // exit worker loop
+		default:
+			continue
+		}
 	}
 }
 
@@ -285,7 +292,7 @@ func (dv *Driver) Destroy(ref Ref) error {
 }
 
 func (dv *Driver) Close() {
-	dv.stop.Store(true) // exit worker loop
+	close(dv.quit) // make worker loop exit
 
 	for range dv.ready {
 		// drain standby container queue (make worker loop actually return).
