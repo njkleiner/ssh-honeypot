@@ -14,7 +14,7 @@ import (
 	"github.com/njkleiner/ssh-honeypot/internal/config"
 	"github.com/njkleiner/ssh-honeypot/internal/elasticlog"
 	"github.com/njkleiner/ssh-honeypot/internal/frontend"
-	"github.com/njkleiner/ssh-honeypot/internal/sandbox"
+	"github.com/njkleiner/ssh-honeypot/internal/sandbox/docker"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -67,7 +67,7 @@ func run() error {
 		})
 	}
 
-	dv, err := sandbox.NewDriver(cfg)
+	dv, err := docker.NewDriver(cfg)
 
 	if err != nil {
 		return fmt.Errorf("cannot create sandbox driver: %w", err)

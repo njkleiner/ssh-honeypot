@@ -1,4 +1,4 @@
-package sandbox
+package docker
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"github.com/njkleiner/ssh-honeypot/internal/control"
 	"github.com/njkleiner/ssh-honeypot/internal/freeport"
 	"github.com/njkleiner/ssh-honeypot/internal/log"
+	"github.com/njkleiner/ssh-honeypot/internal/sandbox"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/exp/maps"
 )
@@ -37,7 +38,7 @@ type Driver struct {
 	daemon *client.Client
 
 	// ready is a queue of started containers on standby.
-	ready chan Ref
+	ready chan sandbox.Ref
 
 	quit chan struct{}
 
@@ -45,10 +46,10 @@ type Driver struct {
 	mu sync.Mutex
 
 	// alive keeps track of all running containers.
-	alive map[Ref]guest
+	alive map[sandbox.Ref]guest
 }
 
-var _ Backend = (*Driver)(nil)
+var _ sandbox.Backend = (*Driver)(nil)
 
 func NewDriver(cfg config.File) (*Driver, error) {
 	daemon, err := client.NewClientWithOpts(client.FromEnv)
@@ -66,11 +67,11 @@ func NewDriver(cfg config.File) (*Driver, error) {
 
 		daemon: daemon,
 
-		ready: make(chan Ref, cfg.Sandbox.ReadyQueueSize),
+		ready: make(chan sandbox.Ref, cfg.Sandbox.ReadyQueueSize),
 
 		quit: make(chan struct{}),
 
-		alive: make(map[Ref]guest),
+		alive: make(map[sandbox.Ref]guest),
 	}
 
 	go dv.work()
@@ -106,7 +107,7 @@ func (dv *Driver) work() {
 	}
 }
 
-func (dv *Driver) start() (Ref, error) {
+func (dv *Driver) start() (sandbox.Ref, error) {
 	sshPort, err := freeport.Random()
 
 	if err != nil {
@@ -166,7 +167,7 @@ func (dv *Driver) start() (Ref, error) {
 		return "", err
 	}
 
-	ref := Ref(resp.ID)
+	ref := sandbox.Ref(resp.ID)
 
 	dv.mu.Lock()
 	defer dv.mu.Unlock()
@@ -179,7 +180,7 @@ func (dv *Driver) start() (Ref, error) {
 	return ref, nil
 }
 
-func (dv *Driver) remove(ref Ref) error {
+func (dv *Driver) remove(ref sandbox.Ref) error {
 	dv.mu.Lock()
 	_, ok := dv.alive[ref]
 	dv.mu.Unlock()
@@ -201,7 +202,7 @@ func (dv *Driver) remove(ref Ref) error {
 	return nil
 }
 
-func (dv *Driver) Acquire(ctx context.Context) (Ref, error) {
+func (dv *Driver) Acquire(ctx context.Context) (sandbox.Ref, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -213,7 +214,7 @@ func (dv *Driver) Acquire(ctx context.Context) (Ref, error) {
 	}
 }
 
-func (dv *Driver) Connect(ctx context.Context, ref Ref, user, password string) (*gossh.Client, error) {
+func (dv *Driver) Connect(ctx context.Context, ref sandbox.Ref, user, password string) (*gossh.Client, error) {
 	dv.mu.Lock()
 	port := dv.alive[ref].sshPort
 	dv.mu.Unlock()
@@ -234,11 +235,11 @@ func (dv *Driver) Connect(ctx context.Context, ref Ref, user, password string) (
 	return conn, nil
 }
 
-func (dv *Driver) Usage(ctx context.Context, ref Ref) (SystemUsage, error) {
+func (dv *Driver) Usage(ctx context.Context, ref sandbox.Ref) (sandbox.SystemUsage, error) {
 	raw, err := dv.daemon.ContainerStats(ctx, string(ref), false)
 
 	if err != nil {
-		return SystemUsage{}, err
+		return sandbox.SystemUsage{}, err
 	}
 
 	defer raw.Body.Close()
@@ -246,10 +247,10 @@ func (dv *Driver) Usage(ctx context.Context, ref Ref) (SystemUsage, error) {
 	var stats types.StatsJSON
 
 	if err := json.NewDecoder(raw.Body).Decode(&stats); err != nil {
-		return SystemUsage{}, err
+		return sandbox.SystemUsage{}, err
 	}
 
-	var usage SystemUsage
+	var usage sandbox.SystemUsage
 
 	preCPUUsage := float64(stats.PreCPUStats.CPUUsage.TotalUsage)
 	cpuUsage := float64(stats.CPUStats.CPUUsage.TotalUsage)
@@ -279,7 +280,7 @@ func (dv *Driver) Usage(ctx context.Context, ref Ref) (SystemUsage, error) {
 	return usage, nil
 }
 
-func (dv *Driver) ControlClient(ref Ref) *control.Client {
+func (dv *Driver) ControlClient(ref sandbox.Ref) *control.Client {
 	dv.mu.Lock()
 	port := dv.alive[ref].controlPort
 	dv.mu.Unlock()
@@ -287,7 +288,7 @@ func (dv *Driver) ControlClient(ref Ref) *control.Client {
 	return &control.Client{Host: fmt.Sprintf("127.0.0.1:%d", port)}
 }
 
-func (dv *Driver) Destroy(ref Ref) error {
+func (dv *Driver) Destroy(ref sandbox.Ref) error {
 	return dv.remove(ref)
 }
 
