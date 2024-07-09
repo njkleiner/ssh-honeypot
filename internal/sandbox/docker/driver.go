@@ -19,6 +19,7 @@ import (
 	"github.com/njkleiner/ssh-honeypot/internal/sandbox"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/exp/maps"
+	"golang.org/x/sync/errgroup"
 )
 
 type guest struct {
@@ -74,14 +75,61 @@ func NewDriver(cfg config.File) (*Driver, error) {
 		alive: make(map[sandbox.Ref]guest),
 	}
 
-	go dv.work()
+	// NOTE: for the time being, we want to preserve the previous behavior
+	// where calling [NewDriver] starts the worker loop in the background.
+	go dv.WorkLoop(context.TODO())
 
 	return dv, nil
 }
 
-func (dv *Driver) work() {
-	defer close(dv.ready)
+// WorkLoop starts one or more worker goroutines which are responsible for
+// starting guest containers in the background and blocks until either ctx
+// is done or one of the worker goroutine returns a non-recoverable error.
+//
+// Note that WorkLoop makes no attempt to clean up resources (i.e. running
+// guest containers already started and not yet acquired) after returning.
+func (dv *Driver) WorkLoop(ctx context.Context) error {
+	done := make(chan error, 1)
 
+	go func() {
+		done <- dv.work(ctx)
+	}()
+
+	// NOTE: the following ideas are central to understanding this method
+	// - worker goroutines may block until [Driver.Close] has been called
+	// - the queue channel is closed after all worker goroutines returned
+
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		// NOTE: we deliberate return early if the context is canceled,
+		// even if some of the worker goroutines have not yet returned.
+		return ctx.Err()
+	}
+}
+
+func (dv *Driver) work(ctx context.Context) error {
+	defer close(dv.ready) // make [Driver.Close] return
+
+	eg, ctx := errgroup.WithContext(ctx)
+
+	const n = 1 // number of concurrent worker goroutines
+
+	for i := 0; i < n; i++ {
+		eg.Go(func() error {
+			return dv.worker(ctx)
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dv *Driver) worker(ctx context.Context) error {
 	for {
 		ref, err := dv.start()
 
@@ -90,17 +138,25 @@ func (dv *Driver) work() {
 
 			select {
 			case <-dv.quit:
-				return // exit immediately
+				return nil // return immediately when [Driver.Close] is called
+			case <-ctx.Done():
+				return ctx.Err() // return immediately when the context is done
 			case <-time.After(5 * time.Second):
+				// NOTE: we deliberately ignore the potential issues with
+				// garbage collection here, since we return in that case.
 				continue
 			}
 		}
 
+		// NOTE: sending to the queue channel is always safe,
+		// since we only close it after all workers return.
 		dv.ready <- ref
 
 		select {
 		case <-dv.quit:
-			return // exit worker loop
+			return nil // exit the loop when [Driver.Close] is called
+		case <-ctx.Done():
+			return ctx.Err() // exit the loop when the context is done
 		default:
 			continue
 		}
