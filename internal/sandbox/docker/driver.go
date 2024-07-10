@@ -258,27 +258,33 @@ func (dv *Driver) acquire(ctx context.Context) (sandbox.Ref, error) {
 }
 
 func (dv *Driver) Destroy(ref sandbox.Ref) error {
-	return dv.remove(ref)
-}
-
-func (dv *Driver) remove(ref sandbox.Ref) error {
 	dv.mu.Lock()
 	_, ok := dv.alive[ref]
 	dv.mu.Unlock()
 
 	if !ok {
+		// NOTE: if we have already attempted to remove
+		// the specified guest container -- or it never
+		// existed to begin with -- we never try again.
 		return nil
 	}
+
+	// NOTE: we only attempt to remove each guest container once
+	// and forget about it regardless of whether removing fails.
+
+	return dv.remove(ref)
+}
+
+func (dv *Driver) remove(ref sandbox.Ref) error {
+	dv.mu.Lock()
+	delete(dv.alive, ref)
+	dv.mu.Unlock()
 
 	err := dv.daemon.ContainerRemove(context.Background(), string(ref), types.ContainerRemoveOptions{Force: true})
 
 	if err != nil {
 		return err
 	}
-
-	dv.mu.Lock()
-	delete(dv.alive, ref)
-	dv.mu.Unlock()
 
 	return nil
 }
