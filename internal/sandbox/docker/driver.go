@@ -236,28 +236,6 @@ func (dv *Driver) start() (sandbox.Ref, error) {
 	return ref, nil
 }
 
-func (dv *Driver) remove(ref sandbox.Ref) error {
-	dv.mu.Lock()
-	_, ok := dv.alive[ref]
-	dv.mu.Unlock()
-
-	if !ok {
-		return nil
-	}
-
-	err := dv.daemon.ContainerRemove(context.Background(), string(ref), types.ContainerRemoveOptions{Force: true})
-
-	if err != nil {
-		return err
-	}
-
-	dv.mu.Lock()
-	delete(dv.alive, ref)
-	dv.mu.Unlock()
-
-	return nil
-}
-
 func (dv *Driver) Acquire(ctx context.Context) (sandbox.Ref, error) {
 	select {
 	case <-dv.quit:
@@ -279,25 +257,30 @@ func (dv *Driver) acquire(ctx context.Context) (sandbox.Ref, error) {
 	}
 }
 
-func (dv *Driver) Connect(ctx context.Context, ref sandbox.Ref, user, password string) (*gossh.Client, error) {
+func (dv *Driver) Destroy(ref sandbox.Ref) error {
+	return dv.remove(ref)
+}
+
+func (dv *Driver) remove(ref sandbox.Ref) error {
 	dv.mu.Lock()
-	port := dv.alive[ref].sshPort
+	_, ok := dv.alive[ref]
 	dv.mu.Unlock()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
-
-	conn, err := gossh.Dial("tcp", addr, &gossh.ClientConfig{
-		User: user,
-		Auth: []gossh.AuthMethod{gossh.Password(password)},
-
-		HostKeyCallback: gossh.InsecureIgnoreHostKey(),
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("cannot connect (ref=%v): %w", ref, err)
+	if !ok {
+		return nil
 	}
 
-	return conn, nil
+	err := dv.daemon.ContainerRemove(context.Background(), string(ref), types.ContainerRemoveOptions{Force: true})
+
+	if err != nil {
+		return err
+	}
+
+	dv.mu.Lock()
+	delete(dv.alive, ref)
+	dv.mu.Unlock()
+
+	return nil
 }
 
 func (dv *Driver) Usage(ctx context.Context, ref sandbox.Ref) (sandbox.SystemUsage, error) {
@@ -345,16 +328,33 @@ func (dv *Driver) Usage(ctx context.Context, ref sandbox.Ref) (sandbox.SystemUsa
 	return usage, nil
 }
 
+func (dv *Driver) Connect(ctx context.Context, ref sandbox.Ref, user, password string) (*gossh.Client, error) {
+	dv.mu.Lock()
+	port := dv.alive[ref].sshPort
+	dv.mu.Unlock()
+
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+
+	conn, err := gossh.Dial("tcp", addr, &gossh.ClientConfig{
+		User: user,
+		Auth: []gossh.AuthMethod{gossh.Password(password)},
+
+		HostKeyCallback: gossh.InsecureIgnoreHostKey(),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot connect (ref=%v): %w", ref, err)
+	}
+
+	return conn, nil
+}
+
 func (dv *Driver) ControlClient(ref sandbox.Ref) *control.Client {
 	dv.mu.Lock()
 	port := dv.alive[ref].controlPort
 	dv.mu.Unlock()
 
 	return &control.Client{Host: fmt.Sprintf("127.0.0.1:%d", port)}
-}
-
-func (dv *Driver) Destroy(ref sandbox.Ref) error {
-	return dv.remove(ref)
 }
 
 func (dv *Driver) Close() {
