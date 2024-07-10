@@ -259,6 +259,15 @@ func (dv *Driver) remove(ref sandbox.Ref) error {
 }
 
 func (dv *Driver) Acquire(ctx context.Context) (sandbox.Ref, error) {
+	select {
+	case <-dv.quit:
+		return "", fmt.Errorf("driver closed")
+	default:
+		return dv.acquire(ctx)
+	}
+}
+
+func (dv *Driver) acquire(ctx context.Context) (sandbox.Ref, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
